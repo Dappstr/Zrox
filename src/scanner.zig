@@ -66,6 +66,7 @@ pub const Scanner = struct {
 
     fn add_token_with_literal(self: *Self, ttype: Token.Token_Type, literal: Token.Literal) !void {
         const text = self.source[self.start..self.current];
+        std.debug.print("TEXT: {s}, TEXT LEN: {}\n", .{ text, text.len });
         const token = Token.Token{ .type = ttype, .lexeme = text, .literal = literal, .line = self.line };
         try self.tokens.append(token);
     }
@@ -109,8 +110,16 @@ pub const Scanner = struct {
                 c = self.advance();
             }
         }
-        const flt: f64 = try std.fmt.parseFloat(f64, self.source[self.start + 1 .. self.current - 1]);
+
+        self.current -= 1;
+
+        const flt_lit = self.source[self.start..self.current];
+        std.debug.print("FOUND FLOAT LITERAL: {s}, and LENGTH: {}\n", .{ flt_lit, flt_lit.len });
+
+        const flt: f64 = try std.fmt.parseFloat(f64, self.source[self.start..self.current]);
         const literal = Token.Literal{ .Float = flt };
+        //_ = literal;
+        std.debug.print("PARSED FLOAT: {d}\n", .{flt});
         try self.add_token_with_literal(Token.Token_Type.NUMBER, literal);
     }
 
@@ -119,13 +128,13 @@ pub const Scanner = struct {
         while (std.ascii.isAlphabetic(c) or c == '_') {
             c = self.advance();
         }
+        self.current -= 1;
+
         const text: []u8 = self.source[self.start..self.current];
+        //std.debug.print("TEXT LEN: {}\n", .{text.len});
         const ttype_opt = keywords.get(text);
         const ttype: Token.Token_Type = if (ttype_opt == null) Token.Token_Type.IDENTIFIER else ttype_opt.?;
         try self.add_token(ttype);
-        //if (ttype == null) ttype = Token.Token_Type.IDENTIFIER;
-        //try self.add_token(ttype);
-        //self.add_token(Token.Token_Type.IDENTIFIER);
     }
 
     fn scan_token(self: *Self) !void {
@@ -185,6 +194,7 @@ pub const Scanner = struct {
             ' ' => {},
             '\r' => {},
             '\t' => {},
+
             '\n' => {
                 self.line += 1;
             },

@@ -70,10 +70,11 @@ pub const Token = struct {
         switch (lit) {
             //Literal.Int => |value| try std.fmt.formatInt(value, 10, .lower, {}, &buffer.writer()),
             Literal.Float => |value| {
-                var float_val: [40]u8 = undefined;
-                const float_str = try std.fmt.formatFloat(&float_val, value, .{});
-                _ = float_str;
-                try buffer.appendSlice(&float_val);
+                var float_val: [std.fmt.format_float.min_buffer_size]u8 = undefined;
+                const float_str = try std.fmt.formatFloat(&float_val, value, .{ .mode = .decimal });
+                //std.debug.print("TEST1: {s}\n\n", .{float_str});
+                //_ = float_str;
+                try buffer.appendSlice(float_str);
             },
             Literal.String => |value| try buffer.appendSlice(value),
             Literal.None => try buffer.appendSlice("null"),
@@ -92,7 +93,7 @@ pub const Token = struct {
         try append_literal(&buffer, self.literal);
         try buffer.appendSlice(", line: ");
         try std.fmt.formatInt(self.line, 10, .lower, .{ .precision = 10 }, &buffer.writer());
-        try buffer.appendSlice(" }");
+        try buffer.appendSlice(" }\n");
         return try buffer.toOwnedSlice();
     }
 };
