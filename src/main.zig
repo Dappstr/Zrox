@@ -24,14 +24,14 @@ fn run(source: []u8) !void {
     const stdout = std.io.getStdOut().writer();
 
     var scanner = Scanner.Scanner.init(allocator, source);
-    defer scanner.deinit(allocator);
+    defer scanner.deinit();
 
-    var tokens = try scanner.scan_tokens();
-    defer tokens.deinit();
+    const tokens = try scanner.scan_tokens();
+    //defer tokens.deinit();
 
-    const token_slice = try tokens.toOwnedSlice();
+    //const token_slice = try tokens.toOwnedSlice();
 
-    for (token_slice) |token| {
+    for (tokens) |token| {
         const token_str = try token.to_string(allocator);
         defer allocator.free(token_str);
         try stdout.print("{s}\n", .{token_str});

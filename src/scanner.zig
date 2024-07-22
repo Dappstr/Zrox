@@ -36,9 +36,9 @@ pub const Scanner = struct {
         };
     }
 
-    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *Self) void {
         self.tokens.deinit();
-        keywords.deinit(allocator);
+        //keywords.deinit(allocator);
     }
 
     fn is_at_end(self: *Self) bool {
@@ -214,11 +214,11 @@ pub const Scanner = struct {
         }
     }
 
-    pub fn scan_tokens(self: *Self) !std.ArrayList(Token.Token) {
+    pub fn scan_tokens(self: *Self) ![]const Token.Token {
         while (!self.is_at_end()) {
             self.start = self.current;
             try self.scan_token();
         }
-        return self.tokens;
+        return self.tokens.items;
     }
 };
