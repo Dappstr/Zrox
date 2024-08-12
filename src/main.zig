@@ -12,7 +12,7 @@ var had_error: bool = false;
 
 fn report(line: usize, where: []const u8, msg: []const u8) !void {
     const stdout = std.io.getStdOut().writer();
-    try stdout.print("[line {}] Error {s}: {s}", .{ line, where, msg });
+    try stdout.print("[line {}] Error {s}: {s}\n", .{ line, where, msg });
     had_error = true;
 }
 
