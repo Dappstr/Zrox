@@ -93,7 +93,7 @@ pub const Scanner = struct {
             try main.base_error(self.line, "Unterminated string.");
             return;
         }
-        _ = self.advance();
+        //_ = self.advance();
         const value: []const u8 = self.source[self.start + 1 .. self.current - 1];
         const literal = Token.Literal{ .String = value };
         try self.add_token_with_literal(Token.Token_Type.STRING, literal);
@@ -181,11 +181,23 @@ pub const Scanner = struct {
             '/' => {
                 if (self.match_next('/')) {
                     while (true) {
-                        var ch = self.peek().?;
-                        if (self.peek() == null or ch == '\n' or self.is_at_end()) {
+                        _ = self.advance();
+                        if (self.peek() == null or self.peek() == '\n' or self.is_at_end()) {
                             break;
                         }
-                        ch = self.advance();
+                    } else if (self.match_next('*')) {
+                        while (true) {
+                            _ = self.advance();
+                            if (self.peek() == '*' and self.peek_next() == '/') {
+                                _ = self.advance();
+                                _ = self.advance();
+                                break;
+                            } else if (self.peek() == '\n') {
+                                self.line += 1;
+                            } else if (is_at_end()) {
+                                main.base_error(self.line, "Error unterminated multiline comment.");
+                            }
+                        }
                     }
                 } else {
                     try self.add_token(Token.Token_Type.SLASH);
