@@ -2,7 +2,7 @@ const std = @import("std");
 const Scanner = @import("scanner.zig");
 const Token = @import("token.zig");
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-var allocator = gpa.allocator();
+const allocator = gpa.allocator();
 
 const Err_Parsing = error{
     General_Error,
@@ -28,7 +28,6 @@ fn run(source: []u8) !void {
 
     const tokens = try scanner.scan_tokens();
     //defer tokens.deinit();
-
     //const token_slice = try tokens.toOwnedSlice();
 
     for (tokens) |token| {
