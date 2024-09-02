@@ -57,10 +57,16 @@ fn run_prompt() !void {
 
     while (true) {
         try stdout.print("> ", .{});
-        var buffer: [1024]u8 = undefined;
+        //var buffer: [1024]u8 = undefined;
+        //const result = try stdin.readUntilDelimiter(&buffer, '\n'); DEPRECATED
 
-        const result = try stdin.readUntilDelimiter(&buffer, '\n');
-        try run(result);
+        var buffer = std.ArrayList(u8).init(allocator);
+        const result = stdin.streamUntilDelimiter(buffer.writer(), '\n', null) catch |err| switch (err) {
+            error.StreamTooLong => return std.debug.print("Stream too long\n", .{}),
+            else => return err,
+        };
+        _ = result;
+        try run(buffer.items);
         had_error = false;
     }
 }
