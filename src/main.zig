@@ -61,8 +61,10 @@ fn run_prompt() !void {
         //const result = try stdin.readUntilDelimiter(&buffer, '\n'); DEPRECATED
 
         var buffer = std.ArrayList(u8).init(allocator);
+        defer buffer.deinit();
         const result = stdin.streamUntilDelimiter(buffer.writer(), '\n', null) catch |err| switch (err) {
             error.StreamTooLong => return std.debug.print("Stream too long\n", .{}),
+            error.EndOfStream => return,
             else => return err,
         };
         _ = result;
