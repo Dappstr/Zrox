@@ -61,7 +61,7 @@ pub const Scanner = struct {
 
     fn add_token_with_literal(self: *Self, ttype: Token.Token_Type, literal: Token.Literal) !void {
         const text = self.source[self.start..self.current];
-        const token = Token.Token{
+        const token = Token.Token {
             .type    = ttype,
             .lexeme  = text,
             .literal = literal,
@@ -223,7 +223,12 @@ pub const Scanner = struct {
             self.start = self.current;
             try self.scan_token();
         }
-        const eof_token = Token.Token{.type = Token.Token_Type.EOF, .lexeme = "EOF", .literal = Token.Literal.None, .line = self.line};
+        const eof_token = Token.Token {
+            .type = Token.Token_Type.EOF,
+            .lexeme = "EOF",
+            .literal = Token.Literal.None,
+            .line = self.line
+        };
         try self.tokens.append(eof_token);
         return self.tokens.items;
 

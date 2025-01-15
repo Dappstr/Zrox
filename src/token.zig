@@ -50,7 +50,7 @@ pub const Token_Type = enum {
     EOF,
 };
 
-pub const Literal = union(enum) { Float: f64, String: []const u8, None: void };
+pub const Literal = union(enum) { Float: f64, String: []const u8, Bool: bool, None: void };
 
 pub const Token = struct {
     const Self = @This();
@@ -74,6 +74,13 @@ pub const Token = struct {
                 try buffer.appendSlice(float_str);
             },
             Literal.String => |value| try buffer.appendSlice(value),
+            Literal.Bool => |value| {
+                if(value) {
+                    try buffer.appendSlice("true");
+                } else {
+                    try buffer.appendSlice("false");
+                }
+            },
             Literal.None => try buffer.appendSlice("null"),
         }
     }
