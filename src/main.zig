@@ -27,8 +27,6 @@ fn run(source: []u8) !void {
     defer scanner.deinit();
 
     const tokens = try scanner.scan_tokens();
-    //defer tokens.deinit();
-    //const token_slice = try tokens.toOwnedSlice();
 
     for (tokens) |token| {
         const token_str = try token.to_string(allocator);
@@ -57,9 +55,6 @@ fn run_prompt() !void {
 
     while (true) {
         try stdout.print("> ", .{});
-        //var buffer: [1024]u8 = undefined;
-        //const result = try stdin.readUntilDelimiter(&buffer, '\n'); DEPRECATED
-
         var buffer = std.ArrayList(u8).init(allocator);
         defer buffer.deinit();
         const result = stdin.streamUntilDelimiter(buffer.writer(), '\n', null) catch |err| switch (err) {

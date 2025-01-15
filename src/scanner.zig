@@ -36,14 +36,9 @@ pub const Scanner = struct {
         };
     }
 
-    pub fn deinit(self: *Self) void {
-        self.tokens.deinit();
-        //keywords.deinit(allocator);
-    }
+    pub fn deinit(self: *Self) void { self.tokens.deinit(); }
 
-    fn is_at_end(self: *Self) bool {
-        return self.current >= self.source.len;
-    }
+    fn is_at_end(self: *Self) bool { return self.current >= self.source.len; }
 
     fn advance(self: *Self) u8 {
         self.current += 1;
@@ -66,8 +61,12 @@ pub const Scanner = struct {
 
     fn add_token_with_literal(self: *Self, ttype: Token.Token_Type, literal: Token.Literal) !void {
         const text = self.source[self.start..self.current];
-        std.debug.print("TEXT: {s}, TEXT LEN: {}\n", .{ text, text.len });
-        const token = Token.Token{ .type = ttype, .lexeme = text, .literal = literal, .line = self.line };
+        const token = Token.Token{
+            .type    = ttype,
+            .lexeme  = text,
+            .literal = literal,
+            .line    = self.line
+        };
         try self.tokens.append(token);
     }
 
@@ -113,13 +112,8 @@ pub const Scanner = struct {
 
         self.current -= 1;
 
-        const flt_lit = self.source[self.start..self.current];
-        std.debug.print("FOUND FLOAT LITERAL: {s}, and LENGTH: {}\n", .{ flt_lit, flt_lit.len });
-
         const flt: f64 = try std.fmt.parseFloat(f64, self.source[self.start..self.current]);
         const literal = Token.Literal{ .Float = flt };
-        //_ = literal;
-        std.debug.print("PARSED FLOAT: {d}\n", .{flt});
         try self.add_token_with_literal(Token.Token_Type.NUMBER, literal);
     }
 
@@ -128,10 +122,10 @@ pub const Scanner = struct {
         while (std.ascii.isAlphabetic(c) or c == '_') {
             c = self.advance();
         }
+
         self.current -= 1;
 
         const text: []u8 = self.source[self.start..self.current];
-        //std.debug.print("TEXT LEN: {}\n", .{text.len});
         const ttype_opt = keywords.get(text);
         const ttype: Token.Token_Type = if (ttype_opt == null) Token.Token_Type.IDENTIFIER else ttype_opt.?;
         try self.add_token(ttype);
@@ -206,7 +200,6 @@ pub const Scanner = struct {
             ' ' => {},
             '\r' => {},
             '\t' => {},
-
             '\n' => {
                 self.line += 1;
             },
@@ -220,7 +213,6 @@ pub const Scanner = struct {
                     try self.identifier();
                 } else {
                     try main.base_error(self.line, "Unexpected character.");
-                    //return;
                 }
             },
         }
@@ -231,6 +223,9 @@ pub const Scanner = struct {
             self.start = self.current;
             try self.scan_token();
         }
+        const eof_token = Token.Token{.type = Token.Token_Type.EOF, .lexeme = "EOF", .literal = Token.Literal.None, .line = self.line};
+        try self.tokens.append(eof_token);
         return self.tokens.items;
+
     }
 };

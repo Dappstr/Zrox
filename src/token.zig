@@ -55,7 +55,7 @@ pub const Literal = union(enum) { Float: f64, String: []const u8, None: void };
 pub const Token = struct {
     const Self = @This();
     type: Token_Type,
-    lexeme: []u8,
+    lexeme: []const u8,
     literal: Literal,
     line: usize,
 
@@ -68,12 +68,9 @@ pub const Token = struct {
 
     fn append_literal(buffer: *std.ArrayList(u8), lit: Literal) !void {
         switch (lit) {
-            //Literal.Int => |value| try std.fmt.formatInt(value, 10, .lower, {}, &buffer.writer()),
             Literal.Float => |value| {
                 var float_val: [std.fmt.format_float.min_buffer_size]u8 = undefined;
                 const float_str = try std.fmt.formatFloat(&float_val, value, .{ .mode = .decimal });
-                //std.debug.print("TEST1: {s}\n\n", .{float_str});
-                //_ = float_str;
                 try buffer.appendSlice(float_str);
             },
             Literal.String => |value| try buffer.appendSlice(value),
