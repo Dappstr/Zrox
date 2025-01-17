@@ -1,6 +1,6 @@
 const std = @import("std");
 const Token = @import("token.zig");
-const Expression = @import("expression.zig");
+const Expr = @import("expression.zig");
 
 pub const Statement = union(enum) {
     expression_statement: Expression_Statement,
@@ -22,17 +22,13 @@ pub const Statement = union(enum) {
 };
 
 pub const Expression_Statement = struct {
-    expr: *Expression,
+    expr: *Expr.Expression,
 
-    pub fn expression(self: *Print_Statement) *Expression {
-        return self.expr;
-    }
+    pub fn expression(self: *Print_Statement) *Expr.Expression { return self.expr; }
 };
 
 pub const Print_Statement = struct {
-    expr: *Expression,
+    expr: *Expr.Expression,
 
-    pub fn expression(self: *Print_Statement) *Expression {
-        return self.expr;
-    }
+    pub fn expression(self: *Print_Statement) *Expr.Expression { return self.expr; }
 };

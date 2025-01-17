@@ -64,7 +64,7 @@ pub const Parser = struct {
 
     fn statement(self: *Self) anyerror!Stmt.Statement {
         if (self.match(&[_]Token.Token_Type{Token.Token_Type.PRINT})) {
-        const expr_ptr = try self.alloc.create(Expr.Expression);
+            const expr_ptr = try self.alloc.create(Expr.Expression);
             expr_ptr.* = self.expression();
 
             return Stmt.Statement{
@@ -73,8 +73,9 @@ pub const Parser = struct {
                 },
             };
         } else {
-        const expr_ptr = try self.alloc.create(Expr.Expression);
+            const expr_ptr = try self.alloc.create(Expr.Expression);
             expr_ptr.* = self.expression();
+
             return Stmt.Statement{
                 .expression_statement = Stmt.Expression_Statement{
                     .expr = expr_ptr,
@@ -103,7 +104,7 @@ pub const Parser = struct {
 
     fn comparison(self: *Self) Expr.Expression {
         var expr = self.term();
-        while(match(&[_]Token.Token_Type{.GREATER, .GREATER_EQUAL, .LESS, .LESS_EQUAL})) {
+        while(self.match(&[_]Token.Token_Type{.GREATER, .GREATER_EQUAL, .LESS, .LESS_EQUAL})) {
             const op = self.previous().type;
             const right = self.term();
             expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
@@ -113,7 +114,7 @@ pub const Parser = struct {
 
     fn term(self: *Self) Expr.Expression {
         var expr = self.factor();
-        while(match(&[_]Token.Token_Type{.PLUS, .MINUS})) {
+        while(self.match(&[_]Token.Token_Type{.PLUS, .MINUS})) {
             const op = self.previous().type;
             const right = self.factor();
             expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
@@ -122,7 +123,7 @@ pub const Parser = struct {
 
     fn factor(self: *Self) Expr.Expression {
         var expr = self.unary();
-        while(match(&[_]Token.Token_Type{.STAR, .SLASH})) {
+        while(self.match(&[_]Token.Token_Type{.STAR, .SLASH})) {
             const op = self.previous().type;
             const right = self.factor();
             expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
@@ -139,13 +140,13 @@ pub const Parser = struct {
     }
 
     fn primary(self: *Self) Expr.Expression {
-        if(match(&[_]Token.Token_Type{.NUMBER})) {
+        if(self.match(&[_]Token.Token_Type{.NUMBER})) {
             const literal = self.previous().literal;
             return Expr.Expression{.literal = literal};
-        } else if(match(&[_]Token.Token_Type{.STRING})) {
+        } else if(self.match(&[_]Token.Token_Type{.STRING})) {
             const literal = self.previous().literal;
             return Expr.Expression{.literal = literal};
-        } else if(match(&[_]Token.Token_Type{.LEFT_PAREN})) {
+        } else if(self.match(&[_]Token.Token_Type{.LEFT_PAREN})) {
             const expr = self.expression();
             _ = self.consume(Token.Token_Type.RIGHT_PAREN);
             const grouping_expr = Expr.Grouping_Node{.expression = expr};
