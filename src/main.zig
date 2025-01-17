@@ -2,6 +2,7 @@ const std = @import("std");
 const Scanner = @import("scanner.zig");
 const Token = @import("token.zig");
 const Parser = @import("parser.zig");
+const Interpreter = @import("interpreter.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
@@ -46,6 +47,7 @@ fn run(source: []u8) !void {
     var parser = Parser.Parser.init(allocator, tokens_list);
     const statements = try parser.parse();
     _ = statements;
+
 }
 
 fn run_file(path: []const u8) !void {

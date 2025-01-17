@@ -99,20 +99,39 @@ pub const Scanner = struct {
     }
 
     fn number(self: *Self) !void {
-        var c: u8 = self.peek().?;
-        while (std.ascii.isDigit(c)) {
-            c = self.advance();
+        // var c: u8 = self.peek().?;
+        // while (std.ascii.isDigit(c)) {
+        //     c = self.advance();
+        // }
+        // if (c == '.' and std.ascii.isDigit(self.peek().?)) {
+        //     c = self.advance();
+        //     while (std.ascii.isDigit(c)) {
+        //         c = self.advance();
+        //     }
+        // }
+        //
+        // self.current -= 1;
+        //
+        // const flt: f64 = try std.fmt.parseFloat(f64, self.source[self.start..self.current]);
+        // const literal = Token.Literal{ .Float = flt };
+        // try self.add_token_with_literal(Token.Token_Type.NUMBER, literal);
+
+        while (std.ascii.isDigit(self.peek().?)) {
+            _ = self.advance();
         }
-        if (c == '.' and std.ascii.isDigit(self.peek().?)) {
-            c = self.advance();
-            while (std.ascii.isDigit(c)) {
-                c = self.advance();
+
+        if (self.peek() == '.' and std.ascii.isDigit(self.peek_next().?)) {
+            _ = self.advance(); // consume '.'
+
+            while (std.ascii.isDigit(self.peek().?)) {
+                _ = self.advance();
             }
         }
 
-        self.current -= 1;
+        //self.current -= 1;
 
-        const flt: f64 = try std.fmt.parseFloat(f64, self.source[self.start..self.current]);
+        const num_string = self.source[self.start..self.current];
+        const flt: f64 = try std.fmt.parseFloat(f64, num_string);
         const literal = Token.Literal{ .Float = flt };
         try self.add_token_with_literal(Token.Token_Type.NUMBER, literal);
     }
