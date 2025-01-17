@@ -64,21 +64,22 @@ pub const Parser = struct {
 
     fn statement(self: *Self) anyerror!Stmt.Statement {
         if (self.match(&[_]Token.Token_Type{Token.Token_Type.PRINT})) {
-            const expr_ptr = try self.alloc.create(Expr.Expression);
-            expr_ptr.* = self.expression();
+            //var expr_ptr = try self.alloc.create(Expr.Expression);
+            const expr = try self.expression();
+            _ = try self.consume(Token.Token_Type.SEMICOLON);
 
             return Stmt.Statement{
                 .Print_Statement = Stmt.Print_Statement{
-                    .expr = expr_ptr,
+                    .expr = expr,
                 },
             };
         } else {
-            const expr_ptr = try self.alloc.create(Expr.Expression);
-            expr_ptr.* = self.expression();
-
+            const expr = try self.expression();
+            // expr_ptr.* = self.expression();
+            _ = try self.consume(Token.Token_Type.SEMICOLON);
             return Stmt.Statement{
                 .expression_statement = Stmt.Expression_Statement{
-                    .expr = expr_ptr,
+                    .expr = expr,
                 },
             };
         }
@@ -90,66 +91,130 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn expression(self: *Self) Expr.Expression { return self.equality(); }
+    fn expression(self: *Self) anyerror!*Expr.Expression { return self.equality(); }
 
-    fn equality(self: *Self) Expr.Expression {
-        var expr = self.comparison();
+    fn equality(self: *Self) anyerror!*Expr.Expression {
+        var expr = try self.comparison();
         while(self.match(&[_]Token.Token_Type{.BANG_EQUAL, .EQUAL_EQUAL})) {
-            const op = self.previous().type;
-            const right = self.comparison();
-            expr = Expr.Binary_Node{.left = expr, .op = op, .right = right};
+            const op = self.previous();
+            const right = try self.comparison();
+            const binary_expr = try self.alloc.create(Expr.Expression);
+            //expr = Expr.Binary_Node{.left = expr, .op = op, .right = right};
+            binary_expr.* = Expr.Expression{
+                .binary = Expr.Binary_Node {
+                    .left = expr,
+                    .op = op,
+                    .right = right
+                 }
+            };
+            expr = binary_expr;
         }
         return expr;
     }
 
-    fn comparison(self: *Self) Expr.Expression {
-        var expr = self.term();
+    fn comparison(self: *Self) anyerror!*Expr.Expression {
+        var expr = try self.term();
         while(self.match(&[_]Token.Token_Type{.GREATER, .GREATER_EQUAL, .LESS, .LESS_EQUAL})) {
-            const op = self.previous().type;
-            const right = self.term();
-            expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+            const op = self.previous();
+            const right = try self.term();
+            const binary_expr = try self.alloc.create(Expr.Expression);
+            // expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+            binary_expr.* = Expr.Expression {
+                .binary = Expr.Binary_Node {
+                    .left = expr,
+                    .op = op,
+                    .right = right,
+                }
+            };
+            expr = binary_expr;
         }
         return expr;
     }
 
-    fn term(self: *Self) Expr.Expression {
-        var expr = self.factor();
+    fn term(self: *Self) anyerror!*Expr.Expression {
+        var expr = try self.factor();
         while(self.match(&[_]Token.Token_Type{.PLUS, .MINUS})) {
-            const op = self.previous().type;
-            const right = self.factor();
-            expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+            const op = self.previous();
+            const right = try self.factor();
+            const binary_expr = try self.alloc.create(Expr.Expression);
+            // expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+            binary_expr.* = Expr.Expression {
+                .binary = Expr.Binary_Node {
+                    .left = expr,
+                    .op = op,
+                    .right = right,
+                }
+            };
+            expr = binary_expr;
         }
+        return expr;
     }
 
-    fn factor(self: *Self) Expr.Expression {
-        var expr = self.unary();
+    fn factor(self: *Self) anyerror!*Expr.Expression {
+        var expr = try self.unary();
         while(self.match(&[_]Token.Token_Type{.STAR, .SLASH})) {
-            const op = self.previous().type;
-            const right = self.factor();
-            expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+            const op = self.previous();
+            const right = try self.factor();
+            const binary_expr = try self.alloc.create(Expr.Expression);
+
+            //expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right}
+            binary_expr.* = Expr.Expression {
+                .binary = Expr.Binary_Node {
+                    .left = expr,
+                    .op = op,
+                    .right = right,
+                }
+            };
+            expr = binary_expr;
         }
+        return expr;
     }
 
-    fn unary(self: *Self) Expr.Expression {
+    fn unary(self: *Self) anyerror!*Expr.Expression {
         if(self.match(&[_]Token.Token_Type{.BANG, .MINUS})) {
-            const op = self.previous().type;
-            const right = self.unary();
-            return Expr.Unary_Node{.op = op, .right = right};
+            const op = self.previous();
+            const right = try self.unary();
+            const unary_expr = try self.alloc.create(Expr.Expression);
+
+            //return Expr.Unary_Node{.op = op, .right = right};
+            unary_expr.* = Expr.Expression {
+                .unary = Expr.Unary_Node {
+                    .op = op,
+                    .right = right,
+                }
+            };
+            return unary_expr;
         }
-        return primary();
+        return try self.primary();
     }
 
-    fn primary(self: *Self) Expr.Expression {
+    fn primary(self: *Self) anyerror!*Expr.Expression {
         if(self.match(&[_]Token.Token_Type{.NUMBER})) {
             const literal = self.previous().literal;
-            return Expr.Expression{.literal = literal};
+            //return Expr.Expression{.literal = literal};
+            const  literal_expr = try self.alloc.create(Expr.Expression);
+            literal_expr.* = Expr.Expression {
+                .literal = literal
+            };
+            return literal_expr;
         } else if(self.match(&[_]Token.Token_Type{.STRING})) {
             const literal = self.previous().literal;
-            return Expr.Expression{.literal = literal};
+            //return Expr.Expression{.literal = literal};
+            const  literal_expr = try self.alloc.create(Expr.Expression);
+            literal_expr.* = Expr.Expression {
+                .literal = literal
+            };
+            return literal_expr;
         } else if(self.match(&[_]Token.Token_Type{.LEFT_PAREN})) {
-            const expr = self.expression();
-            _ = self.consume(Token.Token_Type.RIGHT_PAREN);
-            const grouping_expr = Expr.Grouping_Node{.expression = expr};
+            const expr = try self.expression();
+            _ = try self.consume(Token.Token_Type.RIGHT_PAREN);
+            //const grouping_expr = Expr.Grouping_Node{.expression = expr};
+            const grouping_expr = try self.alloc.create(Expr.Expression);
+            grouping_expr.* = Expr.Expression {
+                .group = Expr.Grouping_Node {
+                    .expression = expr,
+                }
+            };
             return grouping_expr;
         }
         return ParserError.Unexpected_Token;
