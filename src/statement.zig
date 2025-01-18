@@ -21,7 +21,6 @@ pub const Statement = union(enum) {
 
 pub const Expression_Statement = struct {
     expr: *Expr.Expression,
-
     pub fn deinit(self: *Expression_Statement, allocator: *std.mem.Allocator) void {
         self.expr.deinit(allocator);
     }
@@ -29,7 +28,6 @@ pub const Expression_Statement = struct {
 
 pub const Print_Statement = struct {
     expr: *Expr.Expression,
-
     pub fn expression(self: *Print_Statement) *Expr.Expression {
         return self.expr;
     }

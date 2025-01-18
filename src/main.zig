@@ -56,8 +56,8 @@ fn run(source: []u8) !void {
     }
 
     var interpreter = Interpreter.Interpreter.init(statements_list, &allocator);
+    defer interpreter.deinit();
     _ = try interpreter.interpret();
-    //interpreter.deinit();
 }
 
 fn run_file(path: []const u8) !void {

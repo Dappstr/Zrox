@@ -22,23 +22,21 @@ pub const Expression = union(enum) {
     binary: Binary_Node,
     group: Grouping_Node,
 
+
     pub fn deinit(self: *Expression, allocator: *std.mem.Allocator) void {
         switch (self.*) {
             .literal => |lit| {
                 _ = lit;
             },
-            .unary => |u| {
+            .unary => |*u| {
                 u.right.deinit(allocator);
-                allocator.destroy(u);
             },
-            .binary => |b| {
+            .binary => |*b| {
                 b.left.deinit(allocator);
                 b.right.deinit(allocator);
-                allocator.destroy(b);
             },
-            .group => |g| {
+            .group => |*g| {
                 g.expression.deinit(allocator);
-                allocator.destroy(g);
             },
         }
         allocator.destroy(self);
