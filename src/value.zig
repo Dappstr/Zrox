@@ -29,5 +29,5 @@ pub const Value = union(enum) {
 
     pub fn from_f64(f: f64) Value { return Value{.Float = f}; }
     pub fn from_bool(b: bool) Value { return Value{.Bool = b}; }
-    pub fn nil() Value { return Value{.None = {} } }
+    pub fn nil() Value { return Value{.None = {} }; }
 };

@@ -11,17 +11,17 @@ const ParserError = error{
 pub const Parser = struct {
     const Self = @This();
     tokens: std.ArrayList(Token.Token),
-    alloc: std.mem.Allocator,
+    alloc: *std.mem.Allocator,
     current: usize = 0,
 
-    pub fn init(allocator: std.mem.Allocator, toks: std.ArrayList(Token.Token)) Parser {
+    pub fn init(allocator: *std.mem.Allocator, toks: std.ArrayList(Token.Token)) Parser {
         return .{ .alloc = allocator, .tokens = toks};
     }
 
     pub fn deinit(self: *Self) void { self.tokens.deinit(); }
 
     pub fn parse(self: *Self) anyerror![]const Stmt.Statement {
-        var statements = std.ArrayList(Stmt.Statement).init(self.alloc);
+        var statements = std.ArrayList(Stmt.Statement).init(self.alloc.*);
         while (!self.is_at_end()) {
             try statements.append(try self.statement());
         }
@@ -69,7 +69,7 @@ pub const Parser = struct {
             _ = try self.consume(Token.Token_Type.SEMICOLON);
 
             return Stmt.Statement{
-                .Print_Statement = Stmt.Print_Statement{
+                .print_statement = Stmt.Print_Statement{
                     .expr = expr,
                 },
             };

@@ -2,10 +2,11 @@ const std = @import("std");
 const Scanner = @import("scanner.zig");
 const Token = @import("token.zig");
 const Parser = @import("parser.zig");
+const Stmt = @import("statement.zig");
 const Interpreter = @import("interpreter.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-const allocator = gpa.allocator();
+var allocator = gpa.allocator();
 
 const Err_Parsing = error{
     General_Error,
@@ -24,7 +25,7 @@ pub fn base_error(line: usize, msg: []const u8) !void {
 }
 
 fn run(source: []u8) !void {
-    const stdout = std.io.getStdOut().writer();
+    //const stdout = std.io.getStdOut().writer();
 
     var scanner = Scanner.Scanner.init(allocator, source);
     defer scanner.deinit();
@@ -34,7 +35,7 @@ fn run(source: []u8) !void {
     for (tokens) |token| {
         const token_str = try token.to_string(allocator);
         defer allocator.free(token_str);
-        try stdout.print("{s}\n", .{token_str});
+        //try stdout.print("{s}\n", .{token_str});
     }
 
     var tokens_list = std.ArrayList(Token.Token).init(allocator);
@@ -44,10 +45,19 @@ fn run(source: []u8) !void {
         try tokens_list.append(token);
     }
 
-    var parser = Parser.Parser.init(allocator, tokens_list);
+    var parser = Parser.Parser.init(&allocator, tokens_list);
     const statements = try parser.parse();
-    _ = statements;
 
+    var statements_list = std.ArrayList(Stmt.Statement).init(allocator);
+    defer statements_list.deinit();
+
+    for(statements) |stmt| {
+        try statements_list.append(stmt);
+    }
+
+    var interpreter = Interpreter.Interpreter.init(statements_list, &allocator);
+    _ = try interpreter.interpret();
+    //interpreter.deinit();
 }
 
 fn run_file(path: []const u8) !void {

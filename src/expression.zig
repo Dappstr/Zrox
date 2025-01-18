@@ -27,15 +27,18 @@ pub const Expression = union(enum) {
             .literal => |lit| {
                 _ = lit;
             },
-            .Unary => |u| {
+            .unary => |u| {
                 u.right.deinit(allocator);
+                allocator.destroy(u);
             },
-            .Binary => |b| {
+            .binary => |b| {
                 b.left.deinit(allocator);
                 b.right.deinit(allocator);
+                allocator.destroy(b);
             },
             .group => |g| {
                 g.expression.deinit(allocator);
+                allocator.destroy(g);
             },
         }
         allocator.destroy(self);
