@@ -54,11 +54,16 @@ pub const Interpreter = struct {
     fn eval_statement(interpreter: *Interpreter, stmt: *const Stmt.Statement) !Value.Value {
         switch (stmt.*) {
             .expression_statement => |expr| {
-            return try eval_expression(interpreter, expr.expr);
+                return try eval_expression(interpreter, expr.expr);
             },
             .print_statement => |prnt| {
             const val = try eval_expression(interpreter, prnt.expr);
-                std.debug.print("{d}\n", .{val.Float});
+                switch (val) {
+                    .Float => std.debug.print("{d}\n", .{val.Float}),
+                    .String => std.debug.print("{s}\n", .{val.String}),
+                    .Bool => std.debug.print("{s}\n", .{if (val.Bool) "true" else "false"}),
+                    .None => std.debug.print("null\n", .{}),
+                }
                 return val;
             }
         }
