@@ -15,7 +15,6 @@ pub const Statement = union(enum) {
                 print_stmt.expr.deinit(allocator);
             },
         }
-        allocator.destroy(self);
     }
 };
 

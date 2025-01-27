@@ -28,14 +28,14 @@ pub const Expression = union(enum) {
             .literal => |lit| {
                 _ = lit;
             },
-            .unary => |*u| {
+            .unary => |u| {
                 u.right.deinit(allocator);
             },
-            .binary => |*b| {
+            .binary => |b| {
                 b.left.deinit(allocator);
                 b.right.deinit(allocator);
             },
-            .group => |*g| {
+            .group => |g| {
                 g.expression.deinit(allocator);
             },
         }
