@@ -81,7 +81,7 @@ pub const Interpreter = struct {
             .binary => |binary| {
                 const left = try eval_expression(interpreter, binary.left);
                 const right = try eval_expression(interpreter, binary.right);
-                return eval_binary(binary.op, left, right);
+                return eval_binary(interpreter,binary.op, left, right);
             },
             .group => |group| {
                 return eval_expression(interpreter, group.expression);
@@ -103,11 +103,26 @@ pub const Interpreter = struct {
         }
     }
 
-    fn eval_binary(op: Token.Token, left: Value.Value, right: Value.Value) !Value.Value {
+    fn eval_binary(interpreter: *Interpreter, op: Token.Token, left: Value.Value, right: Value.Value) !Value.Value {
         switch (op.type) {
             .PLUS => switch (left) {
                 .Float => switch (right) {
                     .Float => return Value.Value.from_f64(left.Float + right.Float),
+                    else => return Error.Invalid_Binary_Operation,
+                },
+                .String => switch (left) {
+                    .String => switch (right) {
+                        .String =>  {
+                            const allocator = interpreter.allocator orelse return Error.Allocation_Failed;
+                            const combined_len = left.String.len + right.String.len;
+                            const new_str = try allocator.alloc(u8, combined_len);
+                            std.mem.copyForwards(u8, new_str[0..left.String.len], left.String);
+                            std.mem.copyForwards(u8, new_str[left.String.len..], right.String);
+
+                            return Value.Value { .String = new_str };
+                        },
+                        else => return Error.Invalid_Binary_Operation,
+                    },
                     else => return Error.Invalid_Binary_Operation,
                 },
                 else => return Error.Invalid_Binary_Operation,
