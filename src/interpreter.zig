@@ -139,6 +139,26 @@ pub const Interpreter = struct {
                     .Float => return Value.Value.from_f64(left.Float * right.Float),
                     else => return Error.Invalid_Binary_Operation,
                 },
+                .String => switch (right) {
+                    .Float => {
+                        if (right.Float < 1 or @mod(right.Float, 1.0) != 0) {
+                            return Error.Invalid_Binary_Operation;
+                        }
+
+                        const repeat_count = @as(usize, @intFromFloat(right.Float));
+                        const allocator = interpreter.allocator orelse return Error.Allocation_Failed;
+                        const total_len = left.String.len * repeat_count;
+                        const new_mem = try allocator.alloc(u8, total_len);
+
+                        var i: usize = 0;
+                        while (i < repeat_count) : (i += 1) {
+                            std.mem.copyForwards(u8, new_mem[i * left.String.len .. (i + 1) * left.String.len], left.String);
+                        }
+
+                        return Value.Value{ .String = new_mem };
+                    },
+                    else => return Error.Invalid_Binary_Operation,
+                },
                 else => return Error.Invalid_Binary_Operation,
             },
             .SLASH => switch (left) {
