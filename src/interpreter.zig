@@ -57,7 +57,7 @@ pub const Interpreter = struct {
                 return try eval_expression(interpreter, expr.expr);
             },
             .print_statement => |prnt| {
-            const val = try eval_expression(interpreter, prnt.expr);
+                const val = try eval_expression(interpreter, prnt.expr);
                 switch (val) {
                     .Float => std.debug.print("{d}\n", .{val.Float}),
                     .String => std.debug.print("{s}\n", .{val.String}),
@@ -65,6 +65,10 @@ pub const Interpreter = struct {
                     .None => std.debug.print("null\n", .{}),
                 }
                 return val;
+            },
+            .variable_declaration => |var_decl| {
+                std.debug.print("FOUND VAR DECL FOR: {s}\n", .{var_decl.name.lexeme});
+                return Value.Value.nil();
             }
         }
     }

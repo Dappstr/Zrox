@@ -20,10 +20,25 @@ pub const Parser = struct {
 
     pub fn deinit(self: *Self) void { self.tokens.deinit(); }
 
+    // pub fn parse(self: *Self) anyerror![]const Stmt.Statement {
+    //     var statements = std.ArrayList(Stmt.Statement).init(self.alloc.*);
+    //     while (!self.is_at_end()) {
+    //         try statements.append(try self.declaration());
+    //     }
+    //     return statements.items;
+    // }
+
+
     pub fn parse(self: *Self) anyerror![]const Stmt.Statement {
         var statements = std.ArrayList(Stmt.Statement).init(self.alloc.*);
         while (!self.is_at_end()) {
-            try statements.append(try self.statement());
+        const stmt = declaration(self) catch |err| switch (err) {
+                ParserError.Unexpected_Token => {
+                    continue;
+                },
+                else => return err,
+            };
+            try statements.append(stmt);
         }
         return statements.items;
     }
@@ -62,9 +77,35 @@ pub const Parser = struct {
         }
     }
 
+    fn declaration(self: *Self) anyerror!Stmt.Statement {
+        var stmt_result: Stmt.Statement = undefined;
+        if (self.match(&[_]Token.Token_Type{ .VAR })) {
+            stmt_result = try self.var_declaration();
+        } else {
+            stmt_result = try self.statement();
+        }
+        return stmt_result;
+    }
+
+
+    fn var_declaration(self: *Self) anyerror!Stmt.Statement {
+        const name_token = try self.consume(Token.Token_Type.IDENTIFIER);
+        var initializer: ?*Expr.Expression = null;
+        if (self.match(&[_]Token.Token_Type{ .EQUAL })) {
+            initializer = try self.expression();
+        }
+
+        _ = try self.consume(Token.Token_Type.SEMICOLON);
+        return Stmt.Statement {
+            .variable_declaration = Stmt.Variable_Declaration {
+                .name = name_token,
+                .initializer = initializer,
+            },
+        };
+    }
+
     fn statement(self: *Self) anyerror!Stmt.Statement {
         if (self.match(&[_]Token.Token_Type{Token.Token_Type.PRINT})) {
-            //var expr_ptr = try self.alloc.create(Expr.Expression);
             const expr = try self.expression();
             _ = try self.consume(Token.Token_Type.SEMICOLON);
 
@@ -75,7 +116,6 @@ pub const Parser = struct {
             };
         } else {
             const expr = try self.expression();
-            // expr_ptr.* = self.expression();
             _ = try self.consume(Token.Token_Type.SEMICOLON);
             return Stmt.Statement{
                 .expression_statement = Stmt.Expression_Statement{
@@ -99,7 +139,7 @@ pub const Parser = struct {
             const op = self.previous();
             const right = try self.comparison();
             const binary_expr = try self.alloc.create(Expr.Expression);
-            //expr = Expr.Binary_Node{.left = expr, .op = op, .right = right};
+
             binary_expr.* = Expr.Expression{
                 .binary = Expr.Binary_Node {
                     .left = expr,
@@ -118,7 +158,7 @@ pub const Parser = struct {
             const op = self.previous();
             const right = try self.term();
             const binary_expr = try self.alloc.create(Expr.Expression);
-            // expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+
             binary_expr.* = Expr.Expression {
                 .binary = Expr.Binary_Node {
                     .left = expr,
@@ -137,7 +177,7 @@ pub const Parser = struct {
             const op = self.previous();
             const right = try self.factor();
             const binary_expr = try self.alloc.create(Expr.Expression);
-            // expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right};
+
             binary_expr.* = Expr.Expression {
                 .binary = Expr.Binary_Node {
                     .left = expr,
@@ -157,7 +197,6 @@ pub const Parser = struct {
             const right = try self.factor();
             const binary_expr = try self.alloc.create(Expr.Expression);
 
-            //expr = Expr.Binary_Node{.left = expr, .op = op,  .right = right}
             binary_expr.* = Expr.Expression {
                 .binary = Expr.Binary_Node {
                     .left = expr,
@@ -176,7 +215,6 @@ pub const Parser = struct {
             const right = try self.unary();
             const unary_expr = try self.alloc.create(Expr.Expression);
 
-            //return Expr.Unary_Node{.op = op, .right = right};
             unary_expr.* = Expr.Expression {
                 .unary = Expr.Unary_Node {
                     .op = op,
@@ -191,16 +229,16 @@ pub const Parser = struct {
     fn primary(self: *Self) anyerror!*Expr.Expression {
         if(self.match(&[_]Token.Token_Type{.NUMBER})) {
             const literal = self.previous().literal;
-            //return Expr.Expression{.literal = literal};
             const  literal_expr = try self.alloc.create(Expr.Expression);
+
             literal_expr.* = Expr.Expression {
                 .literal = literal
             };
             return literal_expr;
         } else if(self.match(&[_]Token.Token_Type{.STRING})) {
             const literal = self.previous().literal;
-            //return Expr.Expression{.literal = literal};
             const  literal_expr = try self.alloc.create(Expr.Expression);
+
             literal_expr.* = Expr.Expression {
                 .literal = literal
             };
@@ -208,8 +246,8 @@ pub const Parser = struct {
         } else if(self.match(&[_]Token.Token_Type{.LEFT_PAREN})) {
             const expr = try self.expression();
             _ = try self.consume(Token.Token_Type.RIGHT_PAREN);
-            //const grouping_expr = Expr.Grouping_Node{.expression = expr};
             const grouping_expr = try self.alloc.create(Expr.Expression);
+
             grouping_expr.* = Expr.Expression {
                 .group = Expr.Grouping_Node {
                     .expression = expr,
