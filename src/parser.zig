@@ -221,4 +221,20 @@ pub const Parser = struct {
     }
 
     pub fn is_at_end(self: *Self) bool { return self.tokens.items[self.current].type == Token.Token_Type.EOF; }
+
+    pub fn synchronize(self: *Self) void {
+        self.advance();
+        while(!self.is_at_end()) {
+            if(self.previous().type == Token.Token_Type.SEMICOLON) { return; }
+            switch (self.peek().type) {
+                .CLASS, .FUN, .FOR, .IF, .PRINT, .RETURN, .VAR, .WHILE => {
+                    return;
+                },
+                else => {
+                    break;
+                }
+            }
+            self.advance();
+        }
+    }
 };
