@@ -25,18 +25,10 @@ pub fn base_error(line: usize, msg: []const u8) !void {
 }
 
 fn run(source: []u8) !void {
-    //const stdout = std.io.getStdOut().writer();
-
     var scanner = Scanner.Scanner.init(allocator, source);
     defer scanner.deinit();
 
     const tokens = try scanner.scan_tokens();
-
-    for (tokens) |token| {
-        const token_str = try token.to_string(allocator);
-        defer allocator.free(token_str);
-        //try stdout.print("{s}\n", .{token_str});
-    }
 
     var tokens_list = std.ArrayList(Token.Token).init(allocator);
     defer tokens_list.deinit();
@@ -45,19 +37,16 @@ fn run(source: []u8) !void {
         try tokens_list.append(token);
     }
 
-    var parser = Parser.Parser.init(&allocator, tokens_list);
+    var parser = Parser.Parser.init(&allocator, tokens_list.items);
     const statements = try parser.parse();
 
-    var statements_list = std.ArrayList(Stmt.Statement).init(allocator);
-    defer statements_list.deinit();
-
-    for(statements) |stmt| {
-        try statements_list.append(stmt);
-    }
-
-    var interpreter = Interpreter.Interpreter.init(statements_list, &allocator);
+    var interpreter = Interpreter.Interpreter.init(&allocator);
     defer interpreter.deinit();
-    _ = try interpreter.interpret();
+
+    _ = try interpreter.interpret_statements(statements);
+    for(statements) |*stmt| {
+        stmt.deinit(&allocator);
+    }
 }
 
 fn run_file(path: []const u8) !void {
@@ -78,6 +67,9 @@ fn run_prompt() !void {
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
 
+    var interpreter = Interpreter.Interpreter.init(&allocator);
+    defer interpreter.deinit();
+
     while (true) {
         try stdout.print("> ", .{});
         var buffer = std.ArrayList(u8).init(allocator);
@@ -88,8 +80,22 @@ fn run_prompt() !void {
             else => return err,
         };
         _ = result;
-        try run(buffer.items);
         had_error = false;
+
+        var scanner = Scanner.Scanner.init(allocator, buffer.items);
+        defer scanner.deinit();
+        const tokens = try scanner.scan_tokens();
+
+        var tokens_list = std.ArrayList(Token.Token).init(allocator);
+        defer tokens_list.deinit();
+        for(tokens) |token| {
+            try tokens_list.append(token);
+        }
+
+        var parser = Parser.Parser.init(&allocator, tokens_list.items);
+        const line_statements = try parser.parse();
+
+        _ = try interpreter.interpret_statements(line_statements);
     }
 }
 

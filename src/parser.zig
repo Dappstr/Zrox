@@ -10,26 +10,15 @@ const ParserError = error{
 
 pub const Parser = struct {
     const Self = @This();
-    tokens: std.ArrayList(Token.Token),
+    tokens: []const Token.Token,
     alloc: *std.mem.Allocator,
     current: usize = 0,
 
-    pub fn init(allocator: *std.mem.Allocator, toks: std.ArrayList(Token.Token)) Parser {
+    pub fn init(allocator: *std.mem.Allocator, toks: []const Token.Token) Parser {
         return .{ .alloc = allocator, .tokens = toks};
     }
 
-    pub fn deinit(self: *Self) void { self.tokens.deinit(); }
-
-    // pub fn parse(self: *Self) anyerror![]const Stmt.Statement {
-    //     var statements = std.ArrayList(Stmt.Statement).init(self.alloc.*);
-    //     while (!self.is_at_end()) {
-    //         try statements.append(try self.declaration());
-    //     }
-    //     return statements.items;
-    // }
-
-
-    pub fn parse(self: *Self) anyerror![]const Stmt.Statement {
+    pub fn parse(self: *Self) anyerror![] Stmt.Statement {
         var statements = std.ArrayList(Stmt.Statement).init(self.alloc.*);
         while (!self.is_at_end()) {
         const stmt = declaration(self) catch |err| switch (err) {
@@ -40,11 +29,11 @@ pub const Parser = struct {
             };
             try statements.append(stmt);
         }
-        return statements.items;
+        return statements.toOwnedSlice();
     }
 
-    fn peek(self: *Self) Token.Token { return self.tokens.items[self.current]; }
-    fn previous(self: *Self) Token.Token { return self.tokens.items[self.current - 1]; }
+    fn peek(self: *Self) Token.Token { return self.tokens[self.current]; }
+    fn previous(self: *Self) Token.Token { return self.tokens[self.current - 1]; }
     fn advance(self: *Self) Token.Token {
         if(!self.is_at_end()) {
             self.current += 1;
@@ -131,7 +120,31 @@ pub const Parser = struct {
         return expr;
     }
 
-    fn expression(self: *Self) anyerror!*Expr.Expression { return self.equality(); }
+    fn expression(self: *Self) anyerror!*Expr.Expression { return self.assignment(); }
+
+    fn assignment(self: *Self) anyerror!*Expr.Expression {
+        const expr = try self.equality();
+        if(self.match(&[_]Token.Token_Type{.EQUAL})) {
+            const value_expr = try self.assignment();
+
+            switch (expr.*) {
+                .variable => |var_node| {
+                    const assign_expr = try self.alloc.create(Expr.Expression);
+                    assign_expr.* = Expr.Expression {
+                        .assign = Expr.Assign_Node {
+                            .name = var_node.name,
+                            .value = value_expr,
+                        }
+                    };
+                    return assign_expr;
+                },
+                else => {
+                    return ParserError.Unexpected_Token;
+                },
+            }
+        }
+        return expr;
+    }
 
     fn equality(self: *Self) anyerror!*Expr.Expression {
         var expr = try self.comparison();
@@ -254,11 +267,21 @@ pub const Parser = struct {
                 }
             };
             return grouping_expr;
+        } else if(self.match(&[_]Token.Token_Type{.IDENTIFIER})) {
+            const name = self.previous();
+            const variable_expr = try self.alloc.create(Expr.Expression);
+
+            variable_expr.* = Expr.Expression {
+                .variable = Expr.Variable_Expr {
+                    .name = name,
+                }
+            };
+            return variable_expr;
         }
         return ParserError.Unexpected_Token;
     }
 
-    pub fn is_at_end(self: *Self) bool { return self.tokens.items[self.current].type == Token.Token_Type.EOF; }
+    pub fn is_at_end(self: *Self) bool { return self.tokens[self.current].type == Token.Token_Type.EOF; }
 
     pub fn synchronize(self: *Self) void {
         self.advance();

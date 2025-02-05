@@ -117,18 +117,22 @@ pub const Scanner = struct {
     }
 
     fn identifier(self: *Self) !void {
-        var c: u8 = self.peek().?;
-        while (std.ascii.isAlphabetic(c) or c == '_') {
-            c = self.advance();
+        while (!self.is_at_end()) {
+            const c = self.peek() orelse break;
+            if (!std.ascii.isAlphanumeric(c) and c != '_') {
+                break;
+            }
+            _ = self.advance();
         }
 
-        self.current -= 1;
-
-        const text: []u8 = self.source[self.start..self.current];
-        const ttype_opt = keywords.get(text);
-        const ttype: Token.Token_Type = if (ttype_opt == null) Token.Token_Type.IDENTIFIER else ttype_opt.?;
-        try self.add_token(ttype);
+        const text = self.source[self.start..self.current];
+        if (keywords.get(text)) |kw_type| {
+            try self.add_token(kw_type);
+        } else {
+            try self.add_token(Token.Token_Type.IDENTIFIER);
+        }
     }
+
 
     fn scan_token(self: *Self) !void {
         const c: u8 = self.advance();

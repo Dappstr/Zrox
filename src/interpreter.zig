@@ -3,6 +3,7 @@ const Token = @import("token.zig");
 const Expr = @import("expression.zig");
 const Value = @import("value.zig");
 const Stmt = @import("statement.zig");
+const Environment = @import("environment.zig");
 
 pub const Interpreter = struct {
     pub const Error = error{
@@ -16,39 +17,54 @@ pub const Interpreter = struct {
         Uninitialized_AST,
         Allocation_Failed,
         Out_Of_Memory,
+        Undefined_Variable,
     };
 
-    statements: std.ArrayList(Stmt.Statement),
+    environment: Environment.Environment,
+    //statements: std.ArrayList(Stmt.Statement),
     allocator: ?*std.mem.Allocator = null,
 
-    pub fn init(statements: std.ArrayList(Stmt.Statement), alloc: *std.mem.Allocator) Interpreter {
-        return .{
-            .statements = statements,
+    pub fn init(alloc: *std.mem.Allocator) Interpreter {
+    const env = Environment.Environment.init(alloc);
+
+    return .{
+            .environment = env,
             .allocator = alloc,
         };
     }
 
-    pub fn deinit(interpreter: *Interpreter) void {
-        for(interpreter.statements.items) |*stmt| {
-            stmt.deinit(interpreter.allocator.?);
-        }
-    }
+    // pub fn deinit(interpreter: *Interpreter) void {
+    //     for(interpreter.statements.items) |*stmt| {
+    //         stmt.deinit(interpreter.allocator.?);
+    //     }
+    //     interpreter.environment.deinit();
+    // }
+    //
+    pub fn deinit(interpreter: *Interpreter) void { interpreter.environment.deinit(); }
 
-    pub fn interpret(interpreter: *Interpreter) !Value.Value {
-        if (interpreter.statements.capacity < 1) {
-            return Error.Uninitialized_AST;
-        } else {
-            var last_value: ?Value.Value = null;
+    // pub fn interpret(interpreter: *Interpreter) !Value.Value {
+    //     if (interpreter.statements.capacity == 0) {
+    //         return Error.Uninitialized_AST;
+    //     } else {
+    //         var last_value: ?Value.Value = null;
+    //
+    //         for (interpreter.statements.items) |stmt| {
+    //             last_value = (try eval_statement(interpreter, &stmt));
+    //         }
+    //         if (last_value) |value| {
+    //             return value;
+    //         } else {
+    //             return Value.Value.nil();
+    //         }
+    //     }
+    // }
 
-            for (interpreter.statements.items) |stmt| {
-                last_value = (try eval_statement(interpreter, &stmt));
-            }
-            if (last_value) |value| {
-                return value;
-            } else {
-                return Value.Value.nil();
-            }
+    pub fn interpret_statements(interpreter: *Interpreter, statements: []const Stmt.Statement) !Value.Value {
+        var last_val: ?Value.Value = null;
+        for(statements) |stmt| {
+            last_val = try eval_statement(interpreter, &stmt);
         }
+        return last_val orelse Value.Value.nil();
     }
 
     fn eval_statement(interpreter: *Interpreter, stmt: *const Stmt.Statement) !Value.Value {
@@ -67,7 +83,14 @@ pub const Interpreter = struct {
                 return val;
             },
             .variable_declaration => |var_decl| {
-                std.debug.print("FOUND VAR DECL FOR: {s}\n", .{var_decl.name.lexeme});
+                // std.debug.print("FOUND VAR DECL FOR: {s}\n", .{var_decl.name.lexeme});
+                // return Value.Value.nil();
+                var value = Value.Value.nil();
+                if(var_decl.initializer) |init_expr| {
+                    value = try eval_expression(interpreter, init_expr);
+                }
+
+                try interpreter.environment.define(var_decl.name.lexeme, value);
                 return Value.Value.nil();
             }
         }
@@ -89,7 +112,21 @@ pub const Interpreter = struct {
             },
             .group => |group| {
                 return eval_expression(interpreter, group.expression);
-            }
+            },
+            .variable => |var_node| {
+                return interpreter.environment.get(var_node.name.lexeme)
+                    catch |err| switch (err) {
+                        Environment.Env_Error.Variable_Not_Defined => {
+                            return Interpreter.Error.Undefined_Variable;
+                        },
+                        else => return err,
+                    };
+            },
+            .assign => |a| {
+                const rhs_value = try eval_expression(interpreter, a.value);
+                try interpreter.environment.assign(a.name.lexeme, rhs_value);
+                return rhs_value;
+            },
         }
     }
 

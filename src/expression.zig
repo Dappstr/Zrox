@@ -16,12 +16,22 @@ pub const Grouping_Node = struct {
     expression: *Expression,
 };
 
+pub const Variable_Expr = struct {
+    name: Token.Token,
+};
+
+pub const Assign_Node = struct {
+    name: Token.Token,
+    value: *Expression,
+};
+
 pub const Expression = union(enum) {
     literal: Token.Literal,
     unary: Unary_Node,
     binary: Binary_Node,
     group: Grouping_Node,
-
+    variable: Variable_Expr,
+    assign: Assign_Node,
 
     pub fn deinit(self: *Expression, allocator: *std.mem.Allocator) void {
         switch (self.*) {
@@ -38,6 +48,12 @@ pub const Expression = union(enum) {
             .group => |g| {
                 g.expression.deinit(allocator);
             },
+            .variable => |_| {
+                // Do nothing
+            },
+            .assign => |a| {
+                a.value.deinit(allocator);
+            }
         }
         allocator.destroy(self);
     }
